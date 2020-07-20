@@ -1,0 +1,12 @@
+
+*.pyc
+
+__pycache__
+*/__pycache__
+*/*/__pycache__
+*/*/*/__pycache__
+*/*/*/*/__pycache__
+
+.taskon_cache
+build
+dist
