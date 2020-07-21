@@ -1,6 +1,6 @@
 import traceback
 
-from taskon.utils import TaskStatus
+from taskon.common import TaskStatus
 from taskon.abstract_task_processor import AbstractTaskProcessor
 
 class NaiveTaskProcessor(AbstractTaskProcessor):

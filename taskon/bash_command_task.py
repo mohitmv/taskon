@@ -1,5 +1,5 @@
 import os
-from taskon.utils import TaskonError
+from taskon.common import TaskonError
 from taskon.abortable_task import AbortableTask
 
 class BashCommandTask(AbortableTask):

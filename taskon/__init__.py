@@ -1,4 +1,4 @@
-from taskon.utils import TaskonError, TaskonFatalError, TaskResult, TaskStatus
+from taskon.common import TaskonError, TaskonFatalError, TaskResult, TaskStatus
 
 from taskon.abstract_task import AbstractTask
 from taskon.simple_task import SimpleTask
@@ -7,5 +7,6 @@ from taskon.bash_command_task import BashCommandTask
 
 from taskon.abstract_task_processor import AbstractTaskProcessor
 from taskon.naive_task_processor import NaiveTaskProcessor
-
+from taskon.finite_thread_task_processor import FiniteThreadTaskProcessor
+from taskon.infinite_thread_task_processor import InfiniteThreadTaskProcessor
 from taskon.task_runner import TaskRunner

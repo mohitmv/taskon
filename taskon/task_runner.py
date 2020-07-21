@@ -2,10 +2,12 @@ import queue
 import threading
 import collections
 
-from taskon.utils import TaskonFatalError
+from taskon.common import TaskonFatalError
+from taskon.common import TaskonError
+from taskon.common import TaskStatus
 from taskon.utils import cycleDetection
 from taskon.utils import depsCover
-from taskon.utils import TaskStatus
+from taskon.scheduling_algorithm import SchedulingAlgorithm
 
 class TaskResultPlaceholderVisitor:
     """
@@ -77,12 +79,12 @@ class TaskRunner:
         """
         Assume:
         1. task.id is populated for each task in @tasks.
-
         Do:
-        1. For each task create a set of dependency tasks by following the
+        1. Populate the task.id in TaskResult placeholde.
+        2. For each task create a set of dependency tasks by following the
            usage of TaskResult object in inputs of a task.
-        2. Populate the task.id in TaskResult object.
         """
+        self.dependency_graph = dict()
         for task_id, task in tasks.items():
             dependency_tasks = []
             if not isinstance(task.args, tuple):
@@ -95,7 +97,7 @@ class TaskRunner:
                     "be a dictionary." % task.name)
             visitor = TaskResultPlaceholderVisitor(task_name_to_task_map)
             task.visitTaskResultPlaceholders(visitor)
-            task.dependency_tasks = visitor.dependency_tasks
+            self.dependency_graph[task_id] = visitor.dependency_tasks
 
     def __preprocessDependencyGraph(self):
         """
@@ -105,85 +107,43 @@ class TaskRunner:
         2. Ensure that there is no cyclic dependency among the tasks.
         """
         nodes = self.target_tasks
-        edge_func = lambda task_id: self.tasks_map[task_id].dependency_tasks
+        edge_func = lambda task_id: self.dependency_graph[task_id]
         cycle_detection = cycleDetection(nodes, edge_func)
         if cycle_detection.cycle_found:
             cycle_path = list(self.tasks_map[i].name
                                  for i in cycle_detection.cycle_path)
             error = TaskonFatalError(
-                TaskonException.CYCLIC_DEPENDENCY_FOUND,
                 "Cyclic dependency in tasks: " + (" -> ".join(cycle_path)))
             error.cycle_path = cycle_path
             raise error
         self.effective_tasks = depsCover(nodes, edge_func)
 
-    def __populateRuntimeGraph(self):
-        incoming_edges = dict((tid, set(self.tasks_map[tid].dependency_tasks))
-                                 for tid in self.effective_tasks)
-        outgoing_edges = dict((i, []) for i in self.effective_tasks)
-        for i, deps in incoming_edges.items():
-            for d in deps:
-                outgoing_edges[d].append(i)
-        return incoming_edges, outgoing_edges
-
-    def __processTask(self, task):
+    def __getTaskInputs(self, task):
         """
-        1. Replace the TaskResult placeholder with actual output of other task
-           in the args/kwargs of @task.
-        2. Process the execution of @task in @self.task_processor. This @task
-           can be executed by @self.task_processor anytime now. At this point
-           all the dependency tasks of the @task have executed successfully.
+        Return the real inputs of a given tasks by replacing the TaskResult
+        placeholder with actual output of the referenced task.
         """
         args, kwargs = task.visitTaskResultPlaceholders(
             lambda task_output: self.tasks_map[task_output.id].getResult())
-        self.tasks_in_progress.add(task.id)
-        self.task_processor.process(
-            task, self.__onCompleteCallback, *args, **kwargs)
+        return args, kwargs
 
-    def __onCompleteCallback(self, task, status):
-        self.task_completion_updates_queue.put((task, status))
-
-    def __getSkippedTasks(self):
-        """
-        Get the list of skipped tasks.
-        Skipped tasks = All effective tasks - failed tasks - succeeded_tasks
-        """
-        non_skipped_tasks = self.failed_tasks + self.succeeded_tasks
-        non_skipped_task_ids = set(task.id for task in non_skipped_tasks)
-        skipped_task_ids = self.effective_tasks - non_skipped_task_ids
-        skipped_tasks = set(self.tasks_map[i] for i in skipped_task_ids)
-        return skipped_tasks
-
-    def run(self):
-        """Execute the tasks."""
-        self.task_completion_updates_queue = queue.Queue()
-        self.tasks_in_progress = set()
+    def run(self, continue_on_failure=False):
+        deps_func = lambda task_id: self.dependency_graph[task_id]
+        task_inputs_func = self.__getTaskInputs
+        scheduling_algorithm = SchedulingAlgorithm(
+            self.task_processor, task_inputs_func, self.tasks_map, deps_func)
+        scheduling_algorithm.run(self.effective_tasks, continue_on_failure)
         self.failed_tasks = []
         self.succeeded_tasks = []
-        (incoming_edges, outgoing_edges) = self.__populateRuntimeGraph()
+        self.skipped_tasks = []
         for task_id in self.effective_tasks:
-            if len(incoming_edges[task_id]) == 0:
-                self.__processTask(self.tasks_map[task_id])
-        while len(self.tasks_in_progress) > 0:
-            task, status = self.task_completion_updates_queue.get()
-            task.status = status
-            self.task_processor.onComplete(task, status)
-            self.tasks_in_progress.remove(task.id)
-            if status != TaskStatus.SUCCESS:
-                task_name = self.tasks[task_id].name
-                self.failed_tasks.append(task)
-                if self.continue_on_failure:
-                    continue
-                else:
-                    break
-            for d_task_id in outgoing_edges[task.id]:
+            task = self.tasks_map[task_id]
+            if task.status == TaskStatus.SUCCESS:
                 self.succeeded_tasks.append(task)
-                incoming_edges[d_task_id].remove(task.id)
-                if len(incoming_edges[d_task_id]) == 0:
-                    self.__processTask(self.tasks_map[d_task_id])
-        for task_id in self.tasks_in_progress:
-            self.tasks_map[task_id].abort()
-        self.skipped_tasks = self.__getSkippedTasks()
+            elif task.status == TaskStatus.NOT_EXECUTED:
+                self.skipped_tasks.append(task)
+            else:
+                self.failed_tasks.append(task)
 
     def getTask(self, task_name):
         if task_name not in self.task_name_to_task_map:

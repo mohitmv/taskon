@@ -16,6 +16,10 @@ class AbstractTaskProcessor:
     An abstract task processor. All the task processor implementations are
     derived from this class.
     All the task processor must comply the contract defined here.
+
+    All 3 APIs (process, onComplete, close) will be called from a single
+    threaded task scheduler. The implementation of these APIs can choose
+    to be thread unsafe.
     """
     def process(self, task, on_complete_callback, *args, **kwargs):
         """
@@ -80,10 +84,12 @@ class AbstractTaskProcessor:
         """
         assert isinstance(task, AbstractTask)
 
-    def onComplete(self, task, status):
+    def onComplete(self, task):
         """
         Task scheduler calls onComplete API to acknowledge that task scheduler
         have received the information that execution of @task is complete.
+
+        task.getStatus() can be used to query the execution status of the task.
 
         Thread safetly: The handler of this method is free to be thread unsafe
         because this method will always be called from a single thread - that
@@ -95,3 +101,15 @@ class AbstractTaskProcessor:
         task scheduler.
         """
         assert isinstance(task, AbstractTask)
+
+    def close(self):
+        """
+        Task scheduler calls close API to guarantee that task scheduler
+        won't schedule more tasks. task processor implementers can use this
+        handler to close their internal resources.
+
+        Thread safetly: The handler of this method is free to be thread unsafe
+        because this method will always be called a single thread - that is the
+        main thread of task scheduler.
+        """
+        pass

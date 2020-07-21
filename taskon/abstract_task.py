@@ -1,4 +1,4 @@
-from taskon.utils import TaskResult, TaskStatus
+from taskon.common import TaskResult, TaskStatus
 
 class AbstractTask:
     def __init__(self, name, args=None, kwargs=None, result=None):

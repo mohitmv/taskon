@@ -1,7 +1,7 @@
-from taskon import SimpleTask, TaskResult, TaskRunner, TaskStatus
-from taskon import NaiveTaskProcessor
+#! /usr/bin/env python3
 
-# import MultiThreadTaskProcessor
+from taskon import SimpleTask, TaskResult, TaskRunner, TaskStatus
+from taskon import FiniteThreadTaskProcessor
 
 def MakeSandwitch(bread, onion, grill_duration):
   print("Cutting " + onion)
@@ -15,20 +15,22 @@ def MakeBread(flour):
 def BuyOnion():
   return "Onion"
 
-t1 = SimpleTask(name = "make_sandwitch",
+
+t1 = SimpleTask(name = "make_bread", action = MakeBread, args=("flour",))
+
+t2 = SimpleTask(name = "make_sandwitch",
                 action = MakeSandwitch,
                 args = (TaskResult("make_bread"), TaskResult("buy_onion"), 4))
 
-t2 = SimpleTask(name = "make_bread", action = MakeBread, args=("flour",))
-
 t3 = SimpleTask(name = "buy_onion", action = BuyOnion)
 
-# task_processor = MultiThreadTaskProcessor(max_thread=10)
-task_processor = NaiveTaskProcessor()
+task_processor = FiniteThreadTaskProcessor(num_threads=6)
 task_runner = TaskRunner(tasks = [t1, t2, t3],
-                                target_tasks = [t1],
-                                task_processor = task_processor)
+                         target_tasks = [t2],
+                         task_processor = task_processor)
+
 task_runner.run()
 
 assert task_runner.getTask("make_sandwitch").getStatus() == TaskStatus.SUCCESS
 assert task_runner.getTask("make_sandwitch").getResult() == "Onion-Sandwitch"
+print("Done")
