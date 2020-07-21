@@ -2,7 +2,7 @@
 
 import json
 
-from taskon.tests.test_utils import runCommand
+from taskon.utils import runCommand
 from taskon.tests.test_utils import readFile
 
 def printList(l):

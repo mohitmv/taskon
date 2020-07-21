@@ -17,15 +17,16 @@ class TaskResultPlaceholderVisitor:
     1. Populate the task id on the TaskResult obect.
     2. Collect dependency_tasks for a given task.
     """
-    def __init__(self, task_name_to_task_map):
+    def __init__(self, task, task_name_to_task_map):
+        self.task = task
         self.task_name_to_task_map = task_name_to_task_map
         self.dependency_tasks = set()
 
     def __call__(self, task_output):
         if task_output.name not in self.task_name_to_task_map:
             raise TaskonFatalError(
-                "Invalid  task name '%s' used in the TaskResult of "
-                "task '%s'." % (j, task.name))
+                "Invalid task name '%s' used in the TaskResult of "
+                "task '%s'." % (task_output.name, self.task.name))
         task_output.id = self.task_name_to_task_map[task_output.name].id
         self.dependency_tasks.add(task_output.id)
         return task_output
@@ -95,7 +96,7 @@ class TaskRunner:
                 raise TaskonFatalError(
                     "Task '%s' have invalid value for kwargs field, it should "
                     "be a dictionary." % task.name)
-            visitor = TaskResultPlaceholderVisitor(task_name_to_task_map)
+            visitor = TaskResultPlaceholderVisitor(task, task_name_to_task_map)
             task.visitTaskResultPlaceholders(visitor)
             self.dependency_graph[task_id] = visitor.dependency_tasks
 
@@ -127,9 +128,15 @@ class TaskRunner:
             lambda task_output: self.tasks_map[task_output.id].getResult())
         return args, kwargs
 
+    def __resetTasks(self):
+        """Reset all the tasks"""
+        for i, task in self.tasks_map.items():
+            task.reset()
+
     def run(self, continue_on_failure=False):
         deps_func = lambda task_id: self.dependency_graph[task_id]
         task_inputs_func = self.__getTaskInputs
+        self.__resetTasks()
         scheduling_algorithm = SchedulingAlgorithm(
             self.task_processor, task_inputs_func, self.tasks_map, deps_func)
         scheduling_algorithm.run(self.effective_tasks, continue_on_failure)
@@ -140,7 +147,7 @@ class TaskRunner:
             task = self.tasks_map[task_id]
             if task.status == TaskStatus.SUCCESS:
                 self.succeeded_tasks.append(task)
-            elif task.status == TaskStatus.NOT_EXECUTED:
+            elif task.status == TaskStatus.SKIPPED:
                 self.skipped_tasks.append(task)
             else:
                 self.failed_tasks.append(task)
@@ -150,3 +157,32 @@ class TaskRunner:
             raise TaskonError("Invalid task '%s'" % task_name)
         return self.task_name_to_task_map[task_name]
 
+    def getSuccessSummaryString(self):
+        lines = []
+        num_all = len(self.effective_tasks)
+        num_s = len(self.succeeded_tasks)
+        num_f = len(self.failed_tasks)
+        num_skip = len(self.skipped_tasks)
+        info = [(num_s, "succeeded"), (num_f, "failed"), (num_skip, "skipped")]
+        for num, name in info:
+            if num > 0:
+                lines.append("%s/%s tasks %s." % (num, num_all, name))
+        for i, task in self.tasks_map.items():
+            lines.append(" %s : %s" % (task.name, task.getStatus().name))
+        return "\n".join(lines) + "\n"
+
+    def printSuccessSummary(self):
+        print(self.getSuccessSummaryString())
+
+    def getErrorSummaryString(self):
+        output = ""
+        for task in self.failed_tasks:
+            output += task.name + ":\n"
+            output += task.getError() + "\n"
+            output += "-"*20
+        if len(self.failed_tasks) == 0:
+            output += "No failed task."
+        return output
+
+    def printErrorSummary(self):
+        print(self.getErrorSummaryString())

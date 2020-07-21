@@ -1,4 +1,5 @@
 from taskon.abstract_task import AbstractTask
+from taskon.common import taskonAssert
 
 """
 Contract of the AbortableTask.
@@ -19,4 +20,4 @@ class AbortableTask(AbstractTask):
         maintain a boolean flag 'is_aborted' to skip the execution if task is
         aborted in advance.
         """
-        pass
+        taskonAssert(False, "Abstract method 'abort' should not be called.")

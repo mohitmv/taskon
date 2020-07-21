@@ -23,7 +23,7 @@ class TaskStatus(enum.IntEnum):
     SUCCESS = 1
     FAILURE = 2
     ABORTED = 3
-    NOT_EXECUTED = 4
+    SKIPPED = 4
 
 
 class Object(dict):

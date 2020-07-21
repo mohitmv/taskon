@@ -9,7 +9,7 @@ Take a look at these implementation of TaskProcessor for better understanding.
 """
 
 from taskon.abstract_task import AbstractTask
-
+from taskon.common import taskonAssert
 
 class AbstractTaskProcessor:
     """
@@ -83,6 +83,8 @@ class AbstractTaskProcessor:
         setError/setResult APIs are safe.
         """
         assert isinstance(task, AbstractTask)
+        taskonAssert(False, "Purely abstract method 'process' should not "
+                            "be called.")
 
     def onComplete(self, task):
         """
@@ -111,5 +113,9 @@ class AbstractTaskProcessor:
         Thread safetly: The handler of this method is free to be thread unsafe
         because this method will always be called a single thread - that is the
         main thread of task scheduler.
+
+        Note that: if you want to support reusability in your task processor,
+                   you should ensure that 'process' method can still works even
+                   after closed it called.
         """
         pass

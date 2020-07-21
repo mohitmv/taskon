@@ -1,14 +1,13 @@
 from taskon.common import TaskResult, TaskStatus
 
 class AbstractTask:
-    def __init__(self, name, args=None, kwargs=None, result=None):
+    def __init__(self, name, args=None, kwargs=None, default_result=None):
         self.id = None
         self.name = name
         self.args = args or ()
         self.kwargs = kwargs or {}
-        self.result = result
-        self.status = TaskStatus.NOT_EXECUTED
-        self.error = None
+        self.default_result = default_result
+        self.reset()
 
     def visitTaskResultPlaceholders(self, callback):
         """
@@ -40,4 +39,10 @@ class AbstractTask:
 
     def getStatus(self):
         return self.status
+
+    def reset(self):
+        self.result = self.default_result
+        self.status = TaskStatus.SKIPPED
+        self.error = None
+
 

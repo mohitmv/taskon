@@ -12,11 +12,10 @@ class FiniteThreadTaskProcessor(AbstractTaskProcessor):
         taskonAssert(num_threads > 0, "num_threads should be positive number")
         self.num_threads = num_threads
         self.threads = None
-        self.waiting_queue = collections.deque()
-        self.allocated_on_map = dict()
-        self.__startQueueConsumers()
 
     def process(self, task, on_complete_callback, *args, **kwargs):
+        if self.threads is None:
+            self.__startQueueConsumers()
         taskonAssert(self.threads is not None, "TaskProcessor closed")
         task_info = (task, on_complete_callback, args, kwargs)
         if len(self.available_queues) > 0:
@@ -57,6 +56,8 @@ class FiniteThreadTaskProcessor(AbstractTaskProcessor):
     def __startQueueConsumers(self):
         self.available_queues = set(range(self.num_threads))
         self.threads = []
+        self.waiting_queue = collections.deque()
+        self.allocated_on_map = dict()
         self.queues = list(queue.Queue() for i in range(self.num_threads))
         for qid in range(self.num_threads):
             new_thread = threading.Thread(
@@ -76,6 +77,6 @@ class FiniteThreadTaskProcessor(AbstractTaskProcessor):
             task.setResult(task.run(*args, **kwargs))
             on_complete_callback(task, TaskStatus.SUCCESS)
         except Exception as e:
-            task.setError(trace=traceback.format_exc())
+            task.setError(traceback.format_exc())
             on_complete_callback(task, TaskStatus.FAILURE)
 

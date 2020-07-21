@@ -1,6 +1,7 @@
 import queue
 
 from taskon.common import TaskStatus
+from taskon.abortable_task import AbortableTask
 
 class SchedulingAlgorithm:
     """
@@ -70,8 +71,8 @@ class SchedulingAlgorithm:
             self.task_processor.onComplete(task)
             self.tasks_in_progress.remove(task.id)
             if task.status != TaskStatus.SUCCESS:
-                task_name = self.tasks[task_id].name
-                if self.continue_on_failure:
+                task_name = self.tasks_map[task_id].name
+                if continue_on_failure:
                     continue
                 else:
                     break
@@ -80,6 +81,7 @@ class SchedulingAlgorithm:
                 if len(incoming_edges[d_task_id]) == 0:
                     self.__processTask(self.tasks_map[d_task_id])
         for task_id in self.tasks_in_progress:
-            self.tasks_map[task_id].abort()
+            if isinstance(self.tasks_map[task_id], AbortableTask):
+                self.tasks_map[task_id].abort()
         self.task_processor.close()
 

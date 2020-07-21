@@ -28,5 +28,5 @@ class InfiniteThreadTaskProcessor(AbstractTaskProcessor):
             task.setResult(task.run(*args, **kwargs))
             on_complete_callback(task, TaskStatus.SUCCESS)
         except Exception as e:
-            task.setError(trace=traceback.format_exc())
+            task.setError(traceback.format_exc())
             on_complete_callback(task, TaskStatus.FAILURE)
