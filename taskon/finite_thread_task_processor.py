@@ -8,10 +8,11 @@ from taskon.common import taskonAssert
 from taskon.abstract_task_processor import AbstractTaskProcessor
 
 class FiniteThreadTaskProcessor(AbstractTaskProcessor):
-    def __init__(self, num_threads):
+    def __init__(self, num_threads, daemon_thread=True):
         taskonAssert(num_threads > 0, "num_threads should be positive number")
         self.num_threads = num_threads
         self.threads = None
+        self.daemon_thread = daemon_thread
 
     def process(self, task, on_complete_callback, *args, **kwargs):
         if self.threads is None:
@@ -21,7 +22,7 @@ class FiniteThreadTaskProcessor(AbstractTaskProcessor):
         if len(self.available_queues) > 0:
             self.__allocate(task_info)
         else:
-            waiting_queue.add(task_info)
+            self.waiting_queue.append(task_info)
 
     def onComplete(self, task):
         """
@@ -42,8 +43,9 @@ class FiniteThreadTaskProcessor(AbstractTaskProcessor):
             return
         for i in range(self.num_threads):
             self.queues[i].put(None)
-        for i in range(self.num_threads):
-            self.threads[i].join()
+        if not self.daemon_thread:
+            for i in range(self.num_threads):
+                self.threads[i].join()
         self.threads = None
 
     def __allocate(self, task_info):
@@ -63,7 +65,7 @@ class FiniteThreadTaskProcessor(AbstractTaskProcessor):
             new_thread = threading.Thread(
                 target = self.__queueConsumer,
                 args = (self.queues[qid],),
-                daemon=True)
+                daemon=self.daemon_thread)
             new_thread.start()
             self.threads.append(new_thread)
 

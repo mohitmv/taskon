@@ -114,13 +114,3 @@ class ErrorValidationTest(unittest.TestCase):
             runCommand("ls xgzwtwicppo")
         error = "Command 'ls xgzwtwicppo' failed with error_code 1"
         self.assertEqual(error, str(context.exception))
-        # print(str(context.exception))
-
-
-        # print(str(context.exception))
-
-
-
-
-
-

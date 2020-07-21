@@ -167,7 +167,8 @@ class TaskRunner:
         for num, name in info:
             if num > 0:
                 lines.append("%s/%s tasks %s." % (num, num_all, name))
-        for i, task in self.tasks_map.items():
+        for i in self.effective_tasks:
+            task = self.tasks_map[i]
             lines.append(" %s : %s" % (task.name, task.getStatus().name))
         return "\n".join(lines) + "\n"
 

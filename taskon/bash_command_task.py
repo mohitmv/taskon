@@ -14,3 +14,6 @@ class BashCommandTask(AbortableTask):
         else:
             cmd = self.command
         runCommand(cmd)
+
+    def abort(self):
+        print("Warning: 'abort' API is not yet implemented for BashCommandTask")

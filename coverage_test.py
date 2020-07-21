@@ -26,8 +26,8 @@ def main():
             coverage_failures.append(file)
     coverage_failures.sort(
         key = lambda file: files[file]["summary"]["percent_covered"])
+    runCommand("coverage html --directory build/coverage_html_report")
     if len(coverage_failures) > 0:
-        runCommand("coverage html --directory build/coverage_html_report")
         print("-"*20)
         print("Missing coverage:")
         print("-"*5)

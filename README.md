@@ -14,35 +14,40 @@ Taskon is a task runner used for execution of interdependnt tasks. When some tas
 ## How to use
 
 ```python
+from taskon import SimpleTask, TaskResult, TaskRunner, TaskStatus
+from taskon import FiniteThreadTaskProcessor
 
-from taskon import SimpleTask, TaskOutput, TaskRunner, MultiThreadTaskProcessor
-
-def MakeSandwitch(bread, onions, grill_duration):
-  print("Cutting " + onions)
+def MakeSandwitch(bread, onion, grill_duration):
+  print("Cutting " + onion)
   print("Grilling " + bread + " for " + str(grill_duration) + " minutes")
-  return "Sandwitch"
+  return onion + "-Sandwitch"
 
 def MakeBread(flour):
   print("Processing " + flour)
   return "Bread"
 
-def BuyOnions():
-  return "Onions";
+def BuyOnion():
+  return "Onion"
 
-t1 = SimpleTask(name = "make_sandwitch",
+
+t1 = SimpleTask(name = "make_bread", action = MakeBread, args=("flour",))
+
+t2 = SimpleTask(name = "make_sandwitch",
                 action = MakeSandwitch,
-                args = (TaskOutput("make_bread"), TaskOutput("buy_onions"), 4))
+                args = (TaskResult("make_bread"), TaskResult("buy_onion"), 4))
 
-t2 = SimpleTask(name = "make_bread", action = MakeBread, args=("flour"))
+t3 = SimpleTask(name = "buy_onion", action = BuyOnion)
 
-t3 = SimpleTask(name = "buy_onions", action = BuyOnions)
+task_processor = FiniteThreadTaskProcessor(num_threads=6)
+task_runner = TaskRunner(tasks = [t1, t2, t3],
+                         target_tasks = [t2],
+                         task_processor = task_processor)
 
-task_processor = MultiThreadTaskProcessor(max_thread=10)
-task_runner = taskon.TaskRunner(tasks = [t1, t2, t3],
-                                target_tasks = [t1],
-                                task_processor = task_processor)
-task_runner.Run()
-assert task_runner.result("make_sandwitch") == "Sandwitch"
+task_runner.run()
+
+assert task_runner.getTask("make_sandwitch").getStatus() == TaskStatus.SUCCESS
+assert task_runner.getTask("make_sandwitch").getResult() == "Onion-Sandwitch"
+
 ```
 
 # API documentation
@@ -51,17 +56,19 @@ The taskon module defines the following classes and exceptions:
 
 Classes/Exceptions                    | Documentation
 ------------------------------------- | ------------------------
-`taskon.Task`                         | An abstract task. All tasks must derive from `Task`
+`taskon.AbstractTask`                 | An abstract task. All tasks must derive from `Task`
 `taskon.SimpleTask`                   | A simple implementation of task.
 `taskon.AbortableTask`                | An abstract interface for the tasks which can be aborted.
 `taskon.BashCommandTask`              | A task to run bash command, derived from AbortableTask.
-`taskon.TaskOutput`                   | Placeholder to represent result of another task.
+`taskon.TaskResult`                   | Placeholder to represent result of another task.
 `taskon.TaskProcessor`                | An abstract way to process tasks.
 `taskon.NaiveTaskProcessor`           | Naive task processor (single threaded). Designed for the demonstration of AbstractTaskProcessor. Should not be used practically.
-`taskon.SingleThreadTaskProcessor`    | Queue based single threaded task processor.
-`taskon.MultiThreadTaskProcessor`     | N queues based multi threaded task processor.
+`taskon.FiniteThreadTaskProcessor`    | N threaded Queue based task processor.
+`taskon.InfiniteThreadTaskProcessor`  | Unbounded threaded task processor.
 `taskon.RemoteExecutionTaskProcessor` | Task processor that execute bash commands in remote machines.
 `taskon.TaskRunner`                   | Implements task scheduling algorithm.
 
 
+# Coverage
 
+![Test Coverage](docs/coverage.png)
