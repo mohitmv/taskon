@@ -11,7 +11,7 @@ def printList(l):
 
 def main():
     runCommand("coverage erase")
-    tests = ["unit_tests.py", "sandwitch_example.py"]
+    tests = ["unit_tests.py", "sandwitch_example.py", "benchmark_test.py"]
     coverage_run = "coverage run --source=. --omit=setup.py,coverage_test.py "\
                    "--append"
     for test in tests:

@@ -4,12 +4,12 @@ Taskon is a task runner used for execution of interdependnt tasks. When some tas
 
 ## Why taskon
 1. Design of `Taskon` is dead simple at the core.
-2. Taskon is super easy to use, hackable to the core and yet powerful to schedule **billions** of the interdependnt tasks very efficiently, leveraging the available compute resources in best possible way.
-3. All the components of `Taskon` are abstract and supports in-drop replacement. You can bring even more efficient implementation of a component for your use case and replace it. Taskon comes with a default implementations of these components which are pretty efficient. Since the design of `Taskon` is dead simple, you can make use of Taskon's default components and build your own task runner.
-4. Scheduling algorithm used in taskon is very efficult and dead simple to implement.
-5. Scheduling algorithm use a TaskProcessor abstraction for the execute of a single task. A custom and arbitrary powerful implementation of TaskProcessor can be integrated with taskon scheduler to enable you to execute your tasks on a single thread, parallel threads, multiple processors, multiple remote machines, mobile devices, quantum machines or any other way of computing you can imagine.
-6. Taskon is very fast simply because it does't do any magic internally. Taskon is transparent to the core.
-7. Taskon is heavily tested with 100% code coverage. `Taskon` is tested with 1 million sample tasks in dependency graphs.
+2. Taskon is super easy to use, hackable to the core and yet powerful to schedule **millions** of the interdependnt tasks very efficiently, leveraging the available compute resources in best possible way.
+3. Taskon is extremely fast. The overhead of taskon's scheduling algorithm is measured to be less than **1 second on 100000** highly interdependent tasks on a standard 4 core machine. Note that this overhead is just a few times larger than latency of linear scanning 100000 objects in python interpreter.
+4. All the components of `Taskon` are abstract and supports in-drop replacement. You can bring even more efficient implementation of a component for your use case and replace it. Taskon comes with a default implementations of these components which are pretty efficient. Since the design of `Taskon` is dead simple, you can make use of Taskon's default components and build your own task runner. The fundamental reason why all that is easy, is because Taskon does't do any magic internally. Taskon is transparent to the core.
+5. Scheduling algorithm used in taskon is very efficult and dead simple to implement.
+6. Scheduling algorithm use a TaskProcessor abstraction for the execution of a single task. A custom and arbitrary powerful implementation of TaskProcessor can be integrated with taskon scheduler to enable you to execute your tasks on a single thread, parallel threads, multiple processors, multiple remote machines, mobile devices, quantum machines or any other way of computing you can imagine.
+7. Taskon is heavily tested with 100% code coverage. `Taskon` is tested with 1 million sample tasks with very complex dependencies.
 
 ## How to use
 
@@ -28,7 +28,6 @@ def MakeBread(flour):
 
 def BuyOnion():
   return "Onion"
-
 
 t1 = SimpleTask(name = "make_bread", action = MakeBread, args=("flour",))
 
