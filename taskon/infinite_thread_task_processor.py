@@ -8,6 +8,10 @@ from taskon.common import taskonAssert
 from taskon.abstract_task_processor import AbstractTaskProcessor
 
 class InfiniteThreadTaskProcessor(AbstractTaskProcessor):
+    """
+    An implementation of task processor. It create a new thread whenever it
+    receive the request for execution of a task.
+    """
     def __init__(self):
         self.threads_map = dict()
 

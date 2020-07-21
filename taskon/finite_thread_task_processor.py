@@ -8,6 +8,11 @@ from taskon.common import taskonAssert
 from taskon.abstract_task_processor import AbstractTaskProcessor
 
 class FiniteThreadTaskProcessor(AbstractTaskProcessor):
+    """
+    Note: As per the AbstractTaskProcessor contract, all the public APIs
+          can choose to be thread unsafe because task schedular guarantees to
+          call them in a single thread.
+    """
     def __init__(self, num_threads, daemon_thread=True):
         taskonAssert(num_threads > 0, "num_threads should be positive number")
         self.num_threads = num_threads
@@ -15,9 +20,13 @@ class FiniteThreadTaskProcessor(AbstractTaskProcessor):
         self.daemon_thread = daemon_thread
 
     def process(self, task, on_complete_callback, *args, **kwargs):
+        """
+        Handle the request for execution of a new @task.
+        Allocate the task to one of the available queue. If no queue is
+        available, push the task in self.waiting_queue.
+        """
         if self.threads is None:
             self.__startQueueConsumers()
-        taskonAssert(self.threads is not None, "TaskProcessor closed")
         task_info = (task, on_complete_callback, args, kwargs)
         if len(self.available_queues) > 0:
             self.__allocate(task_info)
@@ -70,15 +79,18 @@ class FiniteThreadTaskProcessor(AbstractTaskProcessor):
             self.threads.append(new_thread)
 
     def __queueConsumer(self, queue_object):
-      while True:
-        task_info = queue_object.get()
-        if task_info is None:
-          break
-        (task, on_complete_callback, args, kwargs) = task_info
-        try:
-            task.setResult(task.run(*args, **kwargs))
-            on_complete_callback(task, TaskStatus.SUCCESS)
-        except Exception as e:
-            task.setError(traceback.format_exc())
-            on_complete_callback(task, TaskStatus.FAILURE)
-
+        """
+        Continue to consume and execute tasks from @queue_object forever until
+        a 'None' entry is received.
+        """
+        while True:
+            task_info = queue_object.get()
+            if task_info is None:
+              break
+            (task, on_complete_callback, args, kwargs) = task_info
+            try:
+                task.setResult(task.run(*args, **kwargs))
+                on_complete_callback(task, TaskStatus.SUCCESS)
+            except Exception as e:
+                task.setError(traceback.format_exc())
+                on_complete_callback(task, TaskStatus.FAILURE)

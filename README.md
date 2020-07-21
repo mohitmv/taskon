@@ -61,10 +61,10 @@ Classes/Exceptions                    | Documentation
 `taskon.AbortableTask`                | An abstract interface for the tasks which can be aborted.
 `taskon.BashCommandTask`              | A task to run bash command, derived from AbortableTask.
 `taskon.TaskResult`                   | Placeholder to represent result of another task.
-`taskon.TaskProcessor`                | An abstract way to process tasks.
+[`taskon.AbstractTaskProcessor`](taskon/abstract_task_processor.py) | An abstract way to process tasks.
 `taskon.NaiveTaskProcessor`           | Naive task processor (single threaded). Designed for the demonstration of AbstractTaskProcessor. Should not be used practically.
-`taskon.FiniteThreadTaskProcessor`    | N threaded Queue based task processor.
-`taskon.InfiniteThreadTaskProcessor`  | Unbounded threaded task processor.
+[`taskon.FiniteThreadTaskProcessor`](taskon/finite_thread_task_processor.py)    | N threaded Queue based task processor.
+[`taskon.InfiniteThreadTaskProcessor`](taskon/infinite_thread_task_processor.py)  | Unbounded threaded task processor.
 `taskon.RemoteExecutionTaskProcessor` | Task processor that execute bash commands in remote machines.
 `taskon.TaskRunner`                   | Implements task scheduling algorithm.
 
@@ -72,3 +72,38 @@ Classes/Exceptions                    | Documentation
 # Coverage
 
 ![Test Coverage](docs/coverage.png)
+
+# Scheduling Algorithm
+
+An implementation of default task scheduling algorithm
+
+```
+
+Step-1: Find all the tasks with no dependencies and schedule them in task
+        processor for execution. Task processor will execute it as soon as
+        possible.
+
+Step-2: Wait for the completion status of scheduled tasks:
+        On completion of a scheduled task T:
+            If the execution of task T failed:
+                Stop if 'continue_on_failure' flag is False else do nothing.
+            Else
+                for each task P dependent on T:
+                    Remove the dependency relation P -> T
+                    If the task P still depends on other tasks - ignore.
+                    else: schedule the task P for execution.
+
+Step-3: We reached at step 3 either because execution of all scheduled
+       tasks completed or the execution of some task failed. If there are
+       still pending tasks then abort them.
+
+Step-4: We are done.
+
+```
+Take a look at the [implementation of scheduler](taskon/scheduling_algorithm.py).
+
+# Task Processors
+
+1. The contract of task processor is defined [here](taskon/abstract_task_processor.py).
+2. FiniteThreadTaskProcessor is one the implementation of task processor. It maintains N threads. When a task is scheduled in FiniteThreadTaskProcessor, it will attempt to execute it immediately if there are ideal threads, otherwise it will store the task in a queue, to be executed whenever a thread becomes available.
+3. InfiniteThreadTaskProcessor is another implementation of task processor. It create a new thread whenever it receive the request for execution of a task.
